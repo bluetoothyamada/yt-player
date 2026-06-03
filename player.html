@@ -31,7 +31,6 @@
     };
   }
 
-  // 親フレームからのメッセージを受け取る
   window.addEventListener('message', e => {
     if (!player) return;
     if (e.data?.type === 'yt-bm-seek') {
@@ -43,16 +42,18 @@
       player.seekTo(cur + e.data.delta, true);
       player.playVideo();
     }
+    if (e.data?.type === 'yt-bm-toggle') {
+      const state = player.getPlayerState();
+      state === YT.PlayerState.PLAYING ? player.pauseVideo() : player.playVideo();
+    }
   });
 
-  // ←→キーをキャッチして親フレームへ転送（クロスオリジンのfocus制約を回避）
   document.addEventListener('keydown', e => {
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       e.preventDefault();
       const delta = e.key === 'ArrowLeft' ? -5 : 5;
       if (player?.getCurrentTime) {
-        const cur = player.getCurrentTime() || 0;
-        player.seekTo(cur + delta, true);
+        player.seekTo((player.getCurrentTime() || 0) + delta, true);
         player.playVideo();
       }
     }
