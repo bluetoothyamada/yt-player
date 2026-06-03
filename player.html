@@ -12,12 +12,33 @@
   const p = new URLSearchParams(location.search);
   const v = p.get('v');
   const t = p.get('t') || '0';
+  let player = null;
+
   if (v) {
     const iframe = document.createElement('iframe');
-    iframe.src = `https://www.youtube-nocookie.com/embed/${v}?start=${t}&autoplay=1`;
+    iframe.id = 'yt';
+    iframe.src = `https://www.youtube-nocookie.com/embed/${v}?start=${t}&autoplay=1&enablejsapi=1`;
     iframe.allow = 'autoplay; encrypted-media';
     document.body.appendChild(iframe);
+
+    // YouTube IFrame API
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+    window.onYouTubeIframeAPIReady = () => {
+      player = new YT.Player('yt', {
+        events: { onReady: () => {} }
+      });
+    };
   }
+
+  // 親フレーム(youtube.com)からのseekメッセージを受け取る
+  window.addEventListener('message', e => {
+    if (e.data?.type === 'yt-bm-seek' && player?.seekTo) {
+      player.seekTo(e.data.t, true);
+      player.playVideo();
+    }
+  });
 </script>
 </body>
 </html>
