@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { background: #000; }
+    iframe { width: 100vw; height: 100vh; border: none; }
+  </style>
+</head>
+<body>
+<script>
+  const p = new URLSearchParams(location.search);
+  const v = p.get('v');
+  const t = p.get('t') || '0';
+  if (v) {
+    const iframe = document.createElement('iframe');
+    iframe.src = `https://www.youtube-nocookie.com/embed/${v}?start=${t}&autoplay=1`;
+    iframe.allow = 'autoplay; encrypted-media';
+    document.body.appendChild(iframe);
+  }
+</script>
+</body>
+</html>
