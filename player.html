@@ -17,11 +17,7 @@
  *   親（youtube.com 上のユーザースクリプト）から postMessage で制御し、
  *   状態（再生位置など）を親へ postMessage で送り返す。
  *
- * クエリ:  ?v=<videoId>&t=<秒(小数可)>&mute=1&vq=<画質>
- *   vq: 固定画質。YouTube品質文字列 small=240/medium=360/large=480/hd720/hd1080/highres。
- *       例 vq=large で 480p に固定（未指定なら従来どおり auto）。YouTube は setPlaybackQuality を
- *       auto 任せで無視/巻き戻すことがあるため、onReady＋onPlaybackQualityChange で再適用してピン留めする
- *       （ベストエフォート。プレイヤーが小さい等で希望解像度を配信しない場合は最も近い下位へフォールバック）。
+ * クエリ:  ?v=<videoId>&t=<秒(小数可)>&mute=1
  *
  * 受信メッセージ（親 → このページ）:
  *   { type:'yt-bm-toggle' }              再生/一時停止トグル（DECKミニプレイヤー用・従来）
@@ -41,39 +37,9 @@
   var VIDEO = q.get('v') || '';
   var START = parseFloat(q.get('t')); if (!isFinite(START) || START < 0) START = 0;
   var MUTED = q.get('mute') === '1';
-  var VQ    = q.get('vq') || '';   // 固定画質（例 'large'=480p）。空なら固定しない（auto）。
 
   var player = null;
   var ready  = false;
-
-  // 画質ロック用: 望む品質と利用可能レベルの突き合わせ。YouTubeの品質文字列は低→高でこの順。
-  var Q_ORDER = ['tiny','small','medium','large','hd720','hd1080','hd1440','hd2160','highres'];
-
-  // VQ に最も近い“それ以下で最高”の利用可能レベルを返す（利用可能が取れない/含むならVQそのまま）。
-  function pickQuality() {
-    if (!VQ) return '';
-    var avail = [];
-    try { avail = player.getAvailableQualityLevels() || []; } catch (_) {}
-    if (!avail.length || avail.indexOf(VQ) !== -1) return VQ;
-    var wi = Q_ORDER.indexOf(VQ), best = '';
-    for (var i = 0; i < avail.length; i++) {
-      var ai = Q_ORDER.indexOf(avail[i]);
-      if (ai !== -1 && ai <= wi && (best === '' || ai > Q_ORDER.indexOf(best))) best = avail[i];
-    }
-    return best || VQ;
-  }
-
-  // 画質を VQ に固定。YouTube は auto に戻しがちなので onReady / onPlaybackQualityChange / 再生開始時に再適用。
-  //   既に目標と同じなら何もしない＝setPlaybackQuality→onPlaybackQualityChange の無限ループを防ぐ。
-  function applyQuality() {
-    if (!VQ || !player || !player.setPlaybackQuality) return;
-    try {
-      var want = pickQuality();
-      if (!want) return;
-      if (player.getPlaybackQuality && player.getPlaybackQuality() === want) return;
-      player.setPlaybackQuality(want);
-    } catch (_) {}
-  }
 
   // YouTube IFrame Player API をロード
   var tag = document.createElement('script');
@@ -102,12 +68,9 @@
           if (MUTED) { try { e.target.mute(); } catch (_) {} }
           // 小数秒の頭出しは playerVars.start（整数）では足りないので seekTo で補正。
           if (START > 0) { try { e.target.seekTo(START, true); } catch (_) {} }
-          applyQuality();   // 画質を VQ に固定（auto回避）
           postState();
         },
-        onStateChange: function () { applyQuality(); postState(); },
-        // YouTube が画質を auto で変えたら VQ に戻し直してピン留め（ベストエフォート）。
-        onPlaybackQualityChange: function () { applyQuality(); }
+        onStateChange: function () { postState(); }
       }
     });
   };
