@@ -17,7 +17,8 @@
  *   親（youtube.com 上のユーザースクリプト）から postMessage で制御し、
  *   状態（再生位置など）を親へ postMessage で送り返す。
  *
- * クエリ:  ?v=<videoId>&t=<秒(小数可)>&mute=1
+ * クエリ:  ?v=<videoId>&t=<秒(小数可)>&mute=1&controls=<0|1>
+ *   controls省略時は1(YouTube純正の操作UIを表示)。0を渡すとUIを消す（同時視聴のサブ用）。
  *
  * 受信メッセージ（親 → このページ）:
  *   { type:'yt-bm-toggle' }              再生/一時停止トグル（DECKミニプレイヤー用・従来）
@@ -37,6 +38,9 @@
   var VIDEO = q.get('v') || '';
   var START = parseFloat(q.get('t')); if (!isFinite(START) || START < 0) START = 0;
   var MUTED = q.get('mute') === '1';
+  // controls=0 が来たら同時視聴のサブ等でYouTube純正の操作UI(再生バー/音量/CC/設定/全画面等)を消す。
+  //   未指定/それ以外の値は従来どおり表示(1)＝DECKのミニプレイヤー(controls未指定)は今までの見た目を維持。
+  var CONTROLS = (q.get('controls') === '0') ? 0 : 1;
 
   var player = null;
   var ready  = false;
@@ -60,7 +64,7 @@
         playsinline: 1,
         rel: 0,
         modestbranding: 1,
-        controls: 1
+        controls: CONTROLS
       },
       events: {
         onReady: function (e) {
