@@ -86,7 +86,8 @@
         paused: (st !== YT.PlayerState.PLAYING),
         buffering: (st === YT.PlayerState.BUFFERING),
         duration: player.getDuration(),
-        rate: player.getPlaybackRate()
+        rate: player.getPlaybackRate(),
+        vq: player.getPlaybackQuality()
       }, '*');
     } catch (_) {}
   }
