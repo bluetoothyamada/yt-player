@@ -21,16 +21,16 @@
  *   controls省略時は1(YouTube純正の操作UIを表示)。0を渡すとUIを消す（同時視聴のサブ用）。
  *
  * 受信メッセージ（親 → このページ）:
- *   { type:'yt-bm-toggle' }              再生/一時停止トグル（DECKミニプレイヤー用・従来）
- *   { type:'yt-bm-seek',  t:<秒> }       絶対シーク（★小数秒対応。同期はこれを多用）
- *   { type:'yt-bm-nudge', delta:<秒> }   相対シーク（DECK用・従来。±5等。小数可）
- *   { type:'yt-bm-play' }                明示再生        （★同期用・新規）
- *   { type:'yt-bm-pause' }               明示一時停止    （★同期用・新規）
- *   { type:'yt-bm-rate',  rate:<倍率> }  再生速度        （★同期用・新規。離散値）
- *   { type:'yt-bm-mute',  on:<bool> }    ミュート/解除   （★同期用・新規）
+ *   { type:'sui-bm-toggle' }              再生/一時停止トグル（DECKミニプレイヤー用・従来）
+ *   { type:'sui-bm-seek',  t:<秒> }       絶対シーク（★小数秒対応。同期はこれを多用）
+ *   { type:'sui-bm-nudge', delta:<秒> }   相対シーク（DECK用・従来。±5等。小数可）
+ *   { type:'sui-bm-play' }                明示再生        （★同期用・新規）
+ *   { type:'sui-bm-pause' }               明示一時停止    （★同期用・新規）
+ *   { type:'sui-bm-rate',  rate:<倍率> }  再生速度        （★同期用・新規。離散値）
+ *   { type:'sui-bm-mute',  on:<bool> }    ミュート/解除   （★同期用・新規）
  *
  * 送信メッセージ（このページ → 親）: 250ms ごと＋状態変化時
- *   { type:'yt-bm-state', t, paused, buffering, duration, rate }
+ *   { type:'sui-bm-state', t, paused, buffering, duration, rate }
  *     ※非機微情報なので targetOrigin は '*'。安全境界は親側の origin/source 検証で担保。
  * ========================================================================== */
 (function () {
@@ -85,7 +85,7 @@
     try {
       var st = player.getPlayerState(); // -1:未開始 0:終了 1:再生 2:停止 3:バッファ 5:cued
       parent.postMessage({
-        type: 'yt-bm-state',
+        type: 'sui-bm-state',
         t: player.getCurrentTime(),
         paused: (st !== YT.PlayerState.PLAYING),
         buffering: (st === YT.PlayerState.BUFFERING),
@@ -102,27 +102,30 @@
     var d = e.data;
     if (!d || !d.type || !player || !ready) return;
     try {
-      switch (d.type) {
-        case 'yt-bm-play':
+      // 合言葉の接頭辞は sui-bm- が正。旧 yt-bm- もここで吸収する＝スクリプト側の更新と
+      // このページの配置がどちらの順でも動く（github.io のキャッシュが残っている間も含む）。
+      // 両方が行き渡ったらこの1行は消してよい。
+      switch (String(d.type).replace(/^yt-bm-/, 'sui-bm-')) {
+        case 'sui-bm-play':
           player.playVideo();
           break;
-        case 'yt-bm-pause':
+        case 'sui-bm-pause':
           player.pauseVideo();
           break;
-        case 'yt-bm-toggle':
+        case 'sui-bm-toggle':
           if (player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo();
           else player.playVideo();
           break;
-        case 'yt-bm-seek':
+        case 'sui-bm-seek':
           player.seekTo(Number(d.t) || 0, true);   // ★floor しない（小数秒のまま）
           break;
-        case 'yt-bm-nudge':
+        case 'sui-bm-nudge':
           player.seekTo(player.getCurrentTime() + (Number(d.delta) || 0), true);
           break;
-        case 'yt-bm-rate':
+        case 'sui-bm-rate':
           player.setPlaybackRate(Number(d.rate) || 1);
           break;
-        case 'yt-bm-mute':
+        case 'sui-bm-mute':
           if (d.on) player.mute(); else player.unMute();
           break;
       }
